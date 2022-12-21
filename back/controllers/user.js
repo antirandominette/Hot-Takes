@@ -4,20 +4,26 @@ const env = process.env;
 const User = require('../models/User');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
+const validator = require('validator');
 
 exports.signup = (req, res, next) => { // Hash the password before storing it in the database
     bcrypt.hash(req.body.password, 10) // 10: number of passes to hash the password
         .then(hash => { 
-            const user = new User({ 
-                email: req.body.email, 
-                password: hash 
-            });
-
-            user.save() // Save the user in the database
-                .then(() => res.status(201).json({  // 201: Created 
-                    message: 'Utilisateur créé !' 
-                }))
-                .catch(error => res.status(400).json({ error })); // 400: Bad Request
+            if (validator.isEmail(req.body.email)) {
+                const user = new User({ 
+                    email: req.body.email, 
+                    password: hash 
+                });
+    
+                user.save() // Save the user in the database
+                    .then(() => res.status(201).json({  // 201: Created 
+                        message: 'Utilisateur créé !' 
+                    }))
+                    .catch(error => res.status(400).json({ error })); // 400: Bad Request
+            }
+            else {
+                res.status(400).json({ message: 'Email non valide !' });
+            }
         })
         .catch(error => res.status(500).json({ error })) // 500: Internal Server Error
 };

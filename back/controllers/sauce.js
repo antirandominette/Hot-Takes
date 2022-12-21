@@ -91,7 +91,7 @@ exports.getAllSauces = (req, res, next) => {
     Sauce.find() // Find all the sauces in the database
     .then(sauce => res.status(200).json(sauce)) // 200: OK
     .catch(error => res.status(400).json({ error })); // 400: Bad Request
-    console.log(req.auth.userId);
+    console.log(`User viewing all sauces: ${req.auth.userId}`);
 };
 
 exports.likeSauce = (req, res, next) => {
