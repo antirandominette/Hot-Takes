@@ -100,31 +100,66 @@ exports.likeSauce = (req, res, next) => {
     const sauceId = req.params.id;
     console.log(req.body)
 
+    function addLike() {
+        Sauce.updateOne({ _id: sauceId}, { $inc: { likes: 1 }, $push: { usersLiked: userId } })
+        .then(() => res.status(200).json({ message: 'Added like.'}))
+        .catch(error => res.status(400).json({ error }))
+    }
+
+    function addDislike() {
+        Sauce.updateOne({ _id: sauceId}, { $inc: { dislikes: 1}, $push: { usersDisliked: userId }})
+        .then(() => res.status(200).json({ message: 'Added dislike.'}))
+        .catch(error => res.status(400).json({ error }));
+    }
+
+    function removeLike() {
+        Sauce.updateOne({ _id: sauceId }, { $inc: { likes: -1 }, $pull: { usersLiked: userId }})
+        .then(() => res.status(200).json({ message: 'Removed like.'}))
+        .catch(error => res.status(400).json({ error }));
+    }
+
+    function removeDislike() {
+        Sauce.updateOne({ _id: sauceId }, { $inc: { dislikes: -1 }, $pull: { usersDisliked: userId }})
+        .then(() => res.status(200).json({ message: 'Removed dislike.'}))
+        .catch(error => res.status(400).json({ error }));
+    }
+
     switch (like) {
         case 1: 
-            Sauce.updateOne({ _id: sauceId}, { $inc: { likes: 1 }, $push: { usersLiked: userId } })
-            .then(() => res.status(200).json({ message: 'Added like.'}))
+            Sauce.findOne({ _id: sauceId })
+            .then(sauce => {
+                (userId === req.auth.userId && !sauce.usersLiked.includes(userId) && !sauce.usersDisliked.includes(userId)) ? 
+                    addLike() : res.status(401).json({ message: 'Not authorized' });
+            })
             .catch(error => res.status(400).json({ error }));
+            
             break;
         case -1:
-            Sauce.updateOne({ _id: sauceId}, { $inc: { dislikes: 1}, $push: { usersDisliked: userId }})
-            .then(() => res.status(200).json({ message: 'Added dislike.'}))
+            Sauce.findOne({ _id: sauceId })
+            .then(sauce => {
+                (userId === req.auth.userId && !sauce.usersDisliked.includes(userId) && !sauce.usersLiked.includes(userId)) ?
+                    addDislike() : res.status(401).json({ message: 'Not authorized' });
+            })
             .catch(error => res.status(400).json({ error }));
+
             break;
         case 0:
             Sauce.findOne({ _id: sauceId })
             .then(sauce => {
-                if(sauce.usersLiked.includes(userId)) {
-                    Sauce.updateOne({ _id: sauceId }, { $inc: { likes: -1 }, $pull: { usersLiked: userId }})
-                    .then(() => res.status(200).json({ message: 'Removed like.'}))
-                    .catch(error => res.status(400).json({ error }));
-                }
-                else if (sauce.usersDisliked.includes(userId)) {
-                    Sauce.updateOne({ _id: sauceId }, { $inc: { dislikes: -1 }, $pull: { usersDisliked: userId }})
-                    .then(() => res.status(200).json({ message: 'Removed dislike.'}))
-                    .catch(error => res.status(400).json({ error }));
-                }
+                switch (true) {
+                    case (userId === req.auth.userId && sauce.usersLiked.includes(userId)):
+                        removeLike();
+                        
+                        break;
+                    case (userId === req.auth.userId && sauce.usersDisliked.includes(userId)):
+                        removeDislike();
+                        
+                        break;
+                    default:
+                        res.status(401).json({ message: 'Not authorized' });
+                    }
             });
+
             break;
         default:
             console.error('Bad request');
