@@ -1,47 +1,42 @@
-require('dotenv').config(); 
-
 const express = require('express');
-const mongoose = require('mongoose');
+const mongoose = require('mongoose'); // Mongoose is a MongoDB object modeling tool designed to work in an asynchronous environment.
 const saucesRoutes = require('./routes/sauce');
 const userRoutes = require('./routes/user');
 const path = require('path');
-const helmet = require("helmet");
-const rateLimit = require("express-rate-limit");
+const helmet = require("helmet"); // Helmet helps you secure your Express apps by setting various HTTP headers. It's not a silver bullet, but it can help!
+const rateLimit = require("express-rate-limit"); // Express rate limit is a middleware that can be used to limit repeated requests to public APIs and/or endpoints such as password reset.
 
-const app = express(); // Create an Express application
+const app = express();
 const env = process.env;
 const authLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 20, // limit each IP to 20 requests per window
-    standardHeaders: true, 
+    windowMs: 15 * 60 * 1000,
+    max: 100,
+    standardHeaders: true,
     legacyHeaders: true,
-    message: "Too many requests, please try again later"
+    message: "Too many requests, try again later"
 });
 
-mongoose.set('strictQuery', false); // To avoid the error: "strictQuery: true, strict: true, and strict mode are not compatible with each other"
-mongoose.connect(`mongodb+srv://${env.MONGO_USER_NAME}:${env.MONGO_USER_PASSWORD}@${env.MONGO_CLUSTER_ADDRESS}`, 
-    { 
-        useNewUrlParser: true, 
-        useUnifiedTopology: true 
-    }
-)
-.then(() => console.log('Connexion à MongoDB réussie !'))
-.catch(() => console.log('Connexion à MongoDB échouée ...'));
+mongoose.set('strictQuery', false);
+mongoose.connect(`mongodb+srv://${env.MONGO_USER_NAME}:${env.MONGO_USER_PASSWORD}@${env.MONGO_CLUSTER_ADDRESS}`, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true
+})
+.then(() => console.log('Successfully connected to MongoDB'))
+.catch(() => console.log('Failed to connect to MongoDB...'));
 
+app.use(helmet(), helmet.crossOriginResourcePolicy({ policy: "cross-origin" }));
+app.use(express.json());
 
-app.use(helmet(), helmet.crossOriginResourcePolicy({ policy: "cross-origin" })); // To avoid security issues && to avoid CORS errors
-app.use(express.json()); // Parse the request body to JSON
-
-app.use((req, res, next) => { // To avoid CORS errors
-    res.setHeader('Access-Control-Allow-Origin', '*'); // '*' to allow all origins
-    res.setHeader('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content, Accept, Content-Type, Authorization'); // To allow the use of headers
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS'); // To allow the use of methods
+app.use((req, res, next) => {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content, Accept, Content-Type, Authorization');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
 
     next();
 });
 
 app.use('/images', express.static(path.join(__dirname, 'images')));
 app.use('/api/auth', authLimiter, userRoutes);
-app.use('/api/sauces', saucesRoutes); 
+app.use('/api/sauces', authLimiter, saucesRoutes);
 
 module.exports = app;

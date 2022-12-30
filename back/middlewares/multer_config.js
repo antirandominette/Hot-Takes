@@ -12,9 +12,10 @@ const storage = multer.diskStorage({ // To store the image on the server
         callback(null, 'images'); // The first argument is an error, the second is the destination folder
     },
     filename: (req, file, callback) => {
-        const removedSpaceFromFileName = file.originalname.split(' ').join('_'); // To replace spaces with underscores
-        const name = removedSpaceFromFileName.split('.')[0]; // To get the name of the file
-        const extension = MIME_TYPES[file.mimetype]; // To get the extension of the file
+        const removedSpaceFromFileName = file.originalname.split(' ').join('_'); // Replace spaces with underscores
+        const name = removedSpaceFromFileName.split('.')[0]; // Get the name of the file
+        const extension = MIME_TYPES[file.mimetype]; // Get the extension of the file
+        
         callback(null, name + Date.now() + '.' + extension); // The first argument is an error, the second is the filename
     }
 });
