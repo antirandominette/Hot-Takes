@@ -29,63 +29,63 @@ exports.createSauce = (req, res, next) => {  // Create a sauce
 };
 
 exports.modifySauce = (req, res, next) => { // Modify a sauce
-  // Due to Multer configuration, if a file is uploaded the req.body is different from the req.body when no file is uploaded.
-  const sauceObject = req.file ? { ...req.body.sauce, imageUrl: `${req.protocol}://${req.get('host')}/images/${req.file.filename}` } : { ...req.body } 
+    // Due to Multer configuration, if a file is uploaded the req.body is different from the req.body when no file is uploaded.
+    const sauceObject = req.file ? { ...req.body.sauce, imageUrl: `${req.protocol}://${req.get('host')}/images/${req.file.filename}` } : { ...req.body } 
 
-  console.table(sauceObject);
+    console.table(sauceObject);
 
-  delete sauceObject.userId; // Delete the user id from the request body to avoid any conflict with the user id in the database
+    delete sauceObject.userId; // Delete the user id from the request body to avoid any conflict with the user id in the database
 
-  function updateWithoutImage() { // Update the sauce without changing the image
-    Sauce.updateOne({ _id: req.params.id }, { ...sauceObject, _id: req.params.id})
-        .then(() => res.status(200).json({ message: 'Sauce Modifiée !' }))
-        .catch(error => res.status(401).json({ error }))
-  }
+    function updateWithoutImage() { // Update the sauce without changing the image
+        Sauce.updateOne({ _id: req.params.id }, { ...sauceObject, _id: req.params.id})
+            .then(() => res.status(200).json({ message: 'Sauce Modifiée !' }))
+            .catch(error => res.status(401).json({ error }))
+    }
 
-  function updateWithImage(oldImageUrl) { // Update the sauce and delete the old image and replace it with the new one
-    fs.unlink(`images/${oldImageUrl}`, () => {
-      Sauce.updateOne({ _id: req.params.id }, { ...sauceObject, _id: req.params.id})
-          .then(() => res.status(200).json({ message: 'Sauce Modifiée !' }))
-          .catch(error => res.status(401).json({ error }))
-    });
-  }
+    function updateWithImage(oldImageUrl) { // Update the sauce and delete the old image and replace it with the new one
+        fs.unlink(`images/${oldImageUrl}`, () => {
+            Sauce.updateOne({ _id: req.params.id }, { ...sauceObject, _id: req.params.id})
+                .then(() => res.status(200).json({ message: 'Sauce Modifiée !' }))
+                .catch(error => res.status(401).json({ error }))
+        });
+    }
 
-  Sauce.findOne({ _id: req.params.id })
-      .then(sauce => {
-        const oldImageUrl = sauce.imageUrl.split('/images/')[1];
+    Sauce.findOne({ _id: req.params.id })
+        .then(sauce => {
+            const oldImageUrl = sauce.imageUrl.split('/images/')[1];
 
-        switch (true) {
-            case sauce.userId === req.auth.userId && !req.file: // user is the same that created sauce && no file in request
-              updateWithoutImage();
+            switch (true) {
+                case sauce.userId === req.auth.userId && !req.file: // user is the same that created sauce && no file in request
+                updateWithoutImage();
 
-              break;
-            case sauce.userId === req.auth.userId && req.file && oldImageUrl !== req.file.filename: // user is the same that created sauce && file in request && old img !== new img
-              updateWithImage(oldImageUrl);
+                break;
+                case sauce.userId === req.auth.userId && req.file && oldImageUrl !== req.file.filename: // user is the same that created sauce && file in request && old img !== new img
+                updateWithImage(oldImageUrl);
 
-              break;
-            default:
-              res.status(401).json({ message: 'Not authorized' });
+                break;
+                default:
+                res.status(401).json({ message: 'Not authorized' });
 
-              break;
-        }
-      })
-      .catch(error => res.status(400).json({ error }));
+                break;
+            }
+        })
+        .catch(error => res.status(400).json({ error }));
 };
 
 exports.deleteSauce = (req, res, next) => { // Delete a sauce
-  function deleteSauce(sauce) {
-    const filename = sauce.imageUrl.split('/images/')[1];
+    function deleteSauce(sauce) {
+        const filename = sauce.imageUrl.split('/images/')[1];
 
-    fs.unlink(`images/${filename}`, () => { 
-      Sauce.deleteOne({ _id: req.params.id }) 
-          .then(() => res.status(200).json({ message: 'Sauce Supprimée !' })) // 
-          .catch(error => res.status(400).json({ error }));
-    });
-  } 
+        fs.unlink(`images/${filename}`, () => { 
+            Sauce.deleteOne({ _id: req.params.id }) 
+                .then(() => res.status(200).json({ message: 'Sauce Supprimée !' })) // 
+                .catch(error => res.status(400).json({ error }));
+        });
+    } 
 
-  Sauce.findOne({ _id: req.params.id }) 
-      .then(sauce => { sauce.userId != req.auth.userId ? res.status(401).json({ message: 'Not authorized'}) :  deleteSauce(sauce) })
-      .catch(error => res.status(500).json({ error }));
+    Sauce.findOne({ _id: req.params.id }) 
+        .then(sauce => { sauce.userId != req.auth.userId ? res.status(401).json({ message: 'Not authorized'}) :  deleteSauce(sauce) })
+        .catch(error => res.status(500).json({ error }));
 };
 
 exports.getOneSauce = (req, res, next) => { // Get one sauce
