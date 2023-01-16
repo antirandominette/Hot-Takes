@@ -12,7 +12,6 @@ exports.createSauce = (req, res, next) => {  // Create a sauce
     console.log(req.body.sauce)
     const sauceObject = JSON.parse(req.body.sauce); // Parse the request body to JSON
     
-    delete sauceObject._id; // Delete the _id to preventit from being modified by user, it could be a security breach
     delete sauceObject._userId; // Delete the user id sent, it could be a security breach
 
     const sauce = new Sauce({
@@ -30,9 +29,9 @@ exports.createSauce = (req, res, next) => {  // Create a sauce
 
 exports.modifySauce = (req, res, next) => { // Modify a sauce
     // Due to Multer configuration, if a file is uploaded the req.body is different from the req.body when no file is uploaded.
-    const sauceObject = req.file ? { ...req.body.sauce, imageUrl: `${req.protocol}://${req.get('host')}/images/${req.file.filename}` } : { ...req.body } 
+    const sauceObject = req.file ? { ...JSON.parse(req.body.sauce), imageUrl: `${req.protocol}://${req.get('host')}/images/${req.file.filename}` } : { ...req.body } 
+    
 
-    console.table(sauceObject);
 
     delete sauceObject.userId; // Delete the user id from the request body to avoid any conflict with the user id in the database
 
@@ -44,6 +43,7 @@ exports.modifySauce = (req, res, next) => { // Modify a sauce
 
     function updateWithImage(oldImageUrl) { // Update the sauce and delete the old image and replace it with the new one
         fs.unlink(`images/${oldImageUrl}`, () => {
+            console.log(sauceObject)
             Sauce.updateOne({ _id: req.params.id }, { ...sauceObject, _id: req.params.id})
                 .then(() => res.status(200).json({ message: 'Sauce Modifiée !' }))
                 .catch(error => res.status(401).json({ error }))
