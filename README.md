@@ -1,4 +1,4 @@
-# projet6-oc
+# Hot Takes
 
 Vous avez passé la dernière année en tant que développeur back-end indépendant et vous avez travaillé sur plusieurs projets de tailles et de difficultés variées.
 
